@@ -16,7 +16,7 @@ public class NcaBuilder
 
     public int Blocks => (int)BitUtil.DivideUp(Size, BlockSize);
     public long Size { get; private set; } = NcaHeader.HeaderSize;
-    public long AlignedSize => Blocks * BlockSize;
+    public long AlignedSize => (long)Blocks * BlockSize;
 
     public NcaBuilder(KeySet keySet, NcaContentType contentType = NcaContentType.Program)
     {

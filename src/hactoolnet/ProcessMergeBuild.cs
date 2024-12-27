@@ -51,12 +51,13 @@ internal static class ProcessMergeBuild
         var baseNca = baseNxFs.Ncas.Values.Single(x => x.Nca.Header.ContentType == NcaContentType.Program);
         var updateNca = updateNxFs.Ncas.Values.Single(x => x.Nca.Header.ContentType == NcaContentType.Program);
         var ncaBuilder = new NcaBuilder(ctx.KeySet);
-        var newProgram = ncaBuilder.Build(baseNca.Nca, updateNca.Nca).AsFile(OpenMode.Read);
+        var newProgram = ncaBuilder.Build(baseNca.Nca, updateNca.Nca);
 
+        ctx.Logger.LogMessage("Calculating new Program NCA hash.");
         List<NcaHolder> ncas =
         [
-            new(newProgram, ContentType.Program),
-            new(controlNca.Value.Nca.BaseStorage.AsFile(OpenMode.Read), ContentType.Control)
+            new(newProgram, ContentType.Program, ctx.Logger),
+            new(controlNca.Value.Nca.BaseStorage, ContentType.Control)
         ];
 
         // re-generate meta nca
@@ -65,15 +66,16 @@ internal static class ProcessMergeBuild
         ncas.Add(new NcaHolder(newMeta, ContentType.Meta));
 
         // build nsp
+        ctx.Logger.LogMessage("Saving new NSP. ");
         var pfsBuilder = new PartitionFileSystemBuilder();
         foreach (var file in ncas)
         {
-            pfsBuilder.AddFile(file.FileName, file.File);
+            pfsBuilder.AddFile(file.FileName, file.File.AsFile(OpenMode.Read));
         }
 
         var nsp = pfsBuilder.Build(PartitionFileSystemType.Standard);
         // TestNsp(ctx, nsp);
-        nsp.WriteAllBytes(ctx.Options.OutFile);
+        nsp.WriteAllBytes(ctx.Options.OutFile, ctx.Logger);
     }
 
     private static void TestNsp(Context ctx, IStorage nsp)
@@ -88,18 +90,18 @@ internal static class ProcessMergeBuild
 
     private class NcaHolder
     {
-        public IFile File { get; }
+        public IStorage File { get; }
         public ContentType ContentType { get; }
-        public byte[] HashData { get; } = new byte[0x20];
+        public byte[] HashData { get; }
         public Span<byte> ContentId => HashData.AsSpan(0, 0x10);
         public readonly long Size;
 
-        public NcaHolder(IFile file, ContentType contentType)
+        public NcaHolder(IStorage file, ContentType contentType, IProgressReport progress = null)
         {
             File = file;
             file.GetSize(out Size);
             ContentType = contentType;
-            SHA256.HashData(file.AsStream(), HashData);
+            HashData = DoHash(file, progress);
         }
 
         public string FileName
@@ -124,7 +126,19 @@ internal static class ProcessMergeBuild
         }
     }
 
-    private static IFile CreatePatchedMetaNca(KeySet keySet, SwitchFsNca nca, IEnumerable<NcaHolder> ncas)
+    private static byte[] DoHash(IStorage input, IProgressReport progress = null)
+    {
+        input.GetSize(out long inputSize).ThrowIfFailure();
+        using var sha256 = SHA256.Create();
+        using (var crypto = new CryptoStream(Stream.Null, sha256, CryptoStreamMode.Write))
+        {
+            input.CopyToStream(crypto, inputSize, progress);
+        }
+
+        return sha256.Hash;
+    }
+
+    private static IStorage CreatePatchedMetaNca(KeySet keySet, SwitchFsNca nca, IEnumerable<NcaHolder> ncas)
     {
         // read cnmt
         using var fs = nca.OpenFileSystem(NcaSectionType.Data, IntegrityCheckLevel.ErrorOnInvalid);
@@ -136,7 +150,6 @@ internal static class ProcessMergeBuild
         // update cnmt
         metadata.ContentEntries = ncas.Select(x => x.ToCnmtContentEntry()).ToArray();
         var newCnmt = metadata.Build();
-        var hash = SHA256.HashData(newCnmt);
 
         // build section0
         var pfs0Builder = new PartitionFileSystemBuilder();
@@ -149,6 +162,6 @@ internal static class ProcessMergeBuild
         var fsHeader = ncaBuilder.CopyFsHeader(nca.Nca, 0);
         fsHeader.EncryptionType = NcaEncryptionType.None;
         ncaBuilder.AddPfsSection(0, section0, NcaBuilder.HashBlockSize1);
-        return ncaBuilder.Build().AsFile(OpenMode.Read);
+        return ncaBuilder.Build();
     }
 }
