@@ -141,7 +141,10 @@ public static class Program
                 ProcessPfs.Process(ctx);
                 break;
             case FileType.PfsBuild:
-                ProcessFsBuild.ProcessPartitionFs(ctx);
+                if(ctx.Options.BaseFile != null)
+                    ProcessMergeBuild.Process(ctx);
+                else
+                    ProcessFsBuild.ProcessPartitionFs(ctx);
                 break;
             case FileType.Romfs:
                 ProcessRomfs.Process(ctx);

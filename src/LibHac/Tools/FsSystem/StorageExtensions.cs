@@ -2,6 +2,7 @@
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using LibHac.Common;
 using LibHac.Fs;
 using LibHac.Fs.Fsa;
@@ -138,6 +139,19 @@ public static class StorageExtensions
         {
             input.CopyToStream(outFile, inputSize, progress);
         }
+    }
+    public static byte[] WriteAllBytesCalcSha256(this IStorage input, string filename, IProgressReport progress = null)
+    {
+        input.GetSize(out long inputSize).ThrowIfFailure();
+
+        using var sha256 = SHA256.Create();
+        using (var outFile = new FileStream(filename, FileMode.Create, FileAccess.Write))
+        using (var crypto = new CryptoStream(outFile, sha256, CryptoStreamMode.Write))
+        {
+            input.CopyToStream(crypto, inputSize, progress);
+        }
+
+        return sha256.Hash;
     }
 
     public static byte[] ToArray(this IStorage storage)

@@ -1,8 +1,13 @@
-﻿using System.IO;
+﻿using System;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using LibHac.Crypto;
 using LibHac.Ncm;
 using LibHac.Tools.FsSystem.NcaUtils;
 using ContentType = LibHac.Ncm.ContentType;
+
+// ReSharper disable RedundantCast
 
 namespace LibHac.Tools.Ncm;
 
@@ -17,7 +22,7 @@ public class Cnmt
     public int MetaEntryCount { get; }
     public ContentMetaAttribute ContentMetaAttributes { get; }
 
-    public CnmtContentEntry[] ContentEntries { get; }
+    public CnmtContentEntry[] ContentEntries { get; set; }
     public CnmtContentMetaEntry[] MetaEntries { get; }
 
     public ulong ApplicationTitleId { get; }
@@ -93,6 +98,52 @@ public class Cnmt
             Hash = reader.ReadBytes(0x20);
         }
     }
+
+    public byte[] Build()
+    {
+        using var memStream = new MemoryStream();
+        var writer = new BinaryWriter(memStream);
+        writer.Write((ulong)TitleId);
+        writer.Write((uint)TitleVersion.Version);
+        writer.Write((byte)Type);
+        writer.Write((byte)FieldD);
+        writer.Write((ushort)TableOffset);
+        writer.Write((ushort)ContentEntries.Length);
+        writer.Write((ushort)MetaEntries.Length);
+        writer.Write((ulong)(byte)ContentMetaAttributes);
+        writer.Write((int)0);
+
+        switch (Type)
+        {
+            case ContentMetaType.Application:
+                writer.Write((ulong)PatchTitleId);
+                writer.Write((uint)MinimumSystemVersion.Version);
+                writer.Write((uint)0);
+                Debug.Assert(TableOffset == 0x10);
+                break;
+            case ContentMetaType.Patch:
+                throw new NotImplementedException();
+                break;
+            case ContentMetaType.AddOnContent:
+                throw new NotImplementedException();
+                break;
+        }
+
+        foreach (var contentEntry in ContentEntries)
+        {
+            contentEntry.Build(writer);
+        }
+
+        foreach (var metaEntry in MetaEntries)
+        {
+            throw new NotImplementedException();
+        }
+
+        var hash = new byte[0x20];
+        Sha256.GenerateSha256Hash(hash, memStream.ToArray());
+        writer.Write(hash);
+        return memStream.ToArray();
+    }
 }
 
 public class CnmtContentEntry
@@ -102,7 +153,9 @@ public class CnmtContentEntry
     public long Size { get; set; }
     public ContentType Type { get; set; }
 
-    public CnmtContentEntry() { }
+    public CnmtContentEntry()
+    {
+    }
 
     public CnmtContentEntry(BinaryReader reader)
     {
@@ -113,6 +166,16 @@ public class CnmtContentEntry
         Type = (ContentType)reader.ReadByte();
         reader.BaseStream.Position += 1;
     }
+
+    public void Build(BinaryWriter writer)
+    {
+        writer.Write(Hash);
+        writer.Write(NcaId);
+        writer.Write((uint)(Size & uint.MaxValue));
+        writer.Write((ushort)(Size >> 32));
+        writer.Write((byte)Type);
+        writer.Write((byte)0);
+    }
 }
 
 public class CnmtContentMetaEntry
@@ -121,7 +184,9 @@ public class CnmtContentMetaEntry
     public TitleVersion Version { get; }
     public ContentType Type { get; }
 
-    public CnmtContentMetaEntry() { }
+    public CnmtContentMetaEntry()
+    {
+    }
 
     public CnmtContentMetaEntry(BinaryReader reader)
     {

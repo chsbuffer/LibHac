@@ -310,6 +310,10 @@ internal static class CliParser
         sb.AppendLine("                       Input path must be a directory");
         sb.AppendLine("  --outfile <file>     Specify created Partition FS file path.");
         sb.AppendLine("  --hashedfs           Create a hashed Partition FS (HFS0).");
+        sb.AppendLine("NSP merging options:");
+        sb.AppendLine("                       Input path must be update nsp file.");
+        sb.AppendLine("  --basefile <file>    Specify base nsp file path.");
+        sb.AppendLine("  --outfile <file>     Specify created Partition FS file path.");
         sb.AppendLine("XCI options:");
         sb.AppendLine("  --rootdir <dir>      Specify root XCI directory path.");
         sb.AppendLine("  --updatedir <dir>    Specify update XCI directory path.");

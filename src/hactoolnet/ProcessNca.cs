@@ -235,7 +235,17 @@ internal static class ProcessNca
 
             if (ctx.Options.CiphertextOut != null)
             {
-                nca.OpenEncryptedNca().WriteAllBytes(ctx.Options.CiphertextOut, ctx.Logger);
+                if (ctx.Options.BaseNca != null)
+                {
+                    var ncaBuilder = new NcaBuilder(ctx.KeySet);
+                    var merged = ncaBuilder.Build(baseNca, nca);
+                    var hash = merged.WriteAllBytesCalcSha256(ctx.Options.CiphertextOut, ctx.Logger);
+                    ctx.Logger.LogMessage($"NCA Merged, Hash: {Convert.ToHexString(hash)}");
+                }
+                else
+                {
+                    nca.OpenEncryptedNca().WriteAllBytes(ctx.Options.CiphertextOut, ctx.Logger);
+                }
             }
 
             if (!ctx.Options.ReadBench) ctx.Logger.LogMessage(ncaHolder.Print(ctx.Options));

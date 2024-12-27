@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 
 namespace LibHac.Tools.FsSystem.NcaUtils;
 
-public struct NcaFsIntegrityInfoSha256
+public readonly struct NcaFsIntegrityInfoSha256
 {
     private readonly Memory<byte> _data;
 

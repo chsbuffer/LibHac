@@ -12,7 +12,7 @@ using LibHac.Util;
 
 namespace LibHac.Tools.FsSystem.NcaUtils;
 
-public struct NcaHeader
+public readonly struct NcaHeader
 {
     internal const int HeaderSize = 0xC00;
     internal const int HeaderSectorSize = 0x200;
@@ -30,6 +30,13 @@ public struct NcaHeader
 
         _header = header;
         IsEncrypted = isEncrypted;
+        FormatVersion = DetectNcaVersion(_header.Span);
+    }
+
+    internal NcaHeader(Memory<byte> header)
+    {
+        _header = header;
+        IsEncrypted = false;
         FormatVersion = DetectNcaVersion(_header.Span);
     }
 
@@ -115,7 +122,7 @@ public struct NcaHeader
         return _header.Span.Slice(NcaHeaderStruct.KeyAreaOffset, NcaHeaderStruct.KeyAreaSize);
     }
 
-    private ref NcaSectionEntryStruct GetSectionEntry(int index)
+    internal ref NcaSectionEntryStruct GetSectionEntry(int index)
     {
         ValidateSectionIndex(index);
 
@@ -166,13 +173,13 @@ public struct NcaHeader
         int offset = NcaHeaderStruct.KeyAreaOffset + Aes.KeySize128 * index;
         return _header.Span.Slice(offset, Aes.KeySize128);
     }
+    
 
     public NcaFsHeader GetFsHeader(int index)
     {
         Span<byte> expectedHash = GetFsHeaderHash(index);
 
-        int offset = NcaHeaderStruct.FsHeadersOffset + NcaHeaderStruct.FsHeaderSize * index;
-        Memory<byte> headerData = _header.Slice(offset, NcaHeaderStruct.FsHeaderSize);
+        var headerData = GetFsHeaderUncheck(index);
 
         Span<byte> actualHash = stackalloc byte[Sha256.DigestSize];
         Sha256.GenerateSha256Hash(headerData.Span, actualHash);
@@ -183,6 +190,13 @@ public struct NcaHeader
         }
 
         return new NcaFsHeader(headerData);
+    }
+
+    public Memory<byte> GetFsHeaderUncheck(int index)
+    {
+        int offset = NcaHeaderStruct.FsHeadersOffset + NcaHeaderStruct.FsHeaderSize * index;
+        Memory<byte> headerData = _header.Slice(offset, NcaHeaderStruct.FsHeaderSize);
+        return headerData;
     }
 
     private static void ValidateSectionIndex(int index)
@@ -328,7 +342,7 @@ public struct NcaHeader
     ];
 
     [StructLayout(LayoutKind.Explicit, Size = 0xC00)]
-    private struct NcaHeaderStruct
+    internal struct NcaHeaderStruct
     {
         public const int RightsIdOffset = 0x230;
         public const int RightsIdSize = 0x10;
@@ -355,7 +369,7 @@ public struct NcaHeader
     }
 
     [StructLayout(LayoutKind.Sequential, Pack = 1, Size = SectionEntrySize)]
-    private struct NcaSectionEntryStruct
+    internal struct NcaSectionEntryStruct
     {
         public const int SectionEntrySize = 0x10;
 

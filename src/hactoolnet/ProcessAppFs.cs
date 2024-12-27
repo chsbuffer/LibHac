@@ -13,7 +13,7 @@ namespace hactoolnet;
 
 internal static class ProcessAppFs
 {
-    private static void ImportTickets(Context ctx, IFileSystem fileSystem)
+    public static void ImportTickets(Context ctx, IFileSystem fileSystem)
     {
         foreach (DirectoryEntryEx entry in fileSystem.EnumerateEntries("*.tik", SearchOptions.Default))
         {

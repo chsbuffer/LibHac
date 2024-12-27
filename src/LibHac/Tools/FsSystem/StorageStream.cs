@@ -24,6 +24,9 @@ public class StorageStream : Stream
     public override int Read(byte[] buffer, int offset, int count)
     {
         int toRead = (int)Math.Min(count, Length - Position);
+        if (toRead == 0)
+            return 0;
+
         BaseStorage.Read(Position, buffer.AsSpan(offset, toRead)).ThrowIfFailure();
 
         Position += toRead;

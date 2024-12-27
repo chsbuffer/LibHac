@@ -35,6 +35,7 @@ Options:
   --titlekeys <file>   Load title keys from an external file.
   --accesslog <file>   Specify the access log file path.
   --disablekeywarns    Disables warning output when loading external keys.
+  --enableallkeywarns  Enables warning output when loading unknown external keys.
   --version            Display version information and exit.
   --help               Display this help and exit.
 NCA options:
@@ -56,7 +57,7 @@ NCA options:
   --listromfs          List files in RomFS.
   --basenca            Set Base NCA to use with update partitions.
   --basetitlekey       Specify single (encrypted) titlekey for the base NCA.
-  --titlekey           Specify single (encrypted) titlekey.
+  --titlekey           Specify single (encrypted) titlekey for the NCA.
   --suppresskeys       Suppress output of decrypted keys.
 KIP1 options:
   --uncompressed <f>   Specify file path for saving uncompressed KIP1.
@@ -72,6 +73,10 @@ Partition FS creation options:
                        Input path must be a directory
   --outfile <file>     Specify created Partition FS file path.
   --hashedfs           Create a hashed Partition FS (HFS0).
+NSP merging options:
+                       Input path must be update nsp file.
+  --basefile <file>    Specify base nsp file path.
+  --outfile <file>     Specify created Partition FS file path.
 XCI options:
   --rootdir <dir>      Specify root XCI directory path.
   --updatedir <dir>    Specify update XCI directory path.

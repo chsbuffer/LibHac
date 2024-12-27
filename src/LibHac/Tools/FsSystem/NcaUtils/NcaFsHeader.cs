@@ -7,7 +7,7 @@ using LibHac.FsSystem;
 
 namespace LibHac.Tools.FsSystem.NcaUtils;
 
-public struct NcaFsHeader
+public readonly struct NcaFsHeader
 {
     private readonly Memory<byte> _header;
 
@@ -103,7 +103,7 @@ public struct NcaFsHeader
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    private struct FsHeaderStruct
+    internal struct FsHeaderStruct
     {
         public const int IntegrityInfoOffset = 8;
         public const int IntegrityInfoSize = 0xF8;
