@@ -42,6 +42,7 @@ public class NcaBuilder
     public IStorage Build(Nca baseNca, Nca patchNca)
     {
         CopyHeader(baseNca);
+        Header.RightsId.Clear();
         // copy Logo
         CopyRawStorage(baseNca, 2);
         // copy ExeFs
